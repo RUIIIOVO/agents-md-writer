@@ -18,7 +18,9 @@ jobs:
 
       - name: shellcheck
         if: runner.os == 'Linux'
-        run: shellcheck scripts/lint-agents-md.sh
+        # severity=warning: SC2016 (info) fires on the backtick-matching regex,
+        # where single quotes are exactly what we want.
+        run: shellcheck --severity=warning scripts/lint-agents-md.sh
 
       - name: lint flags the bad example (expect exit 1)
         run: |
@@ -48,7 +50,10 @@ jobs:
         shell: pwsh
         run: |
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
-          $issues = Invoke-ScriptAnalyzer -Path scripts/lint-agents-md.ps1 -Severity Error,Warning
+          # PSAvoidUsingWriteHost is excluded on purpose: this is a CLI reporter.
+          # Write-Output would pollute the pipeline and lose the colour coding.
+          $issues = Invoke-ScriptAnalyzer -Path scripts/lint-agents-md.ps1 `
+            -Severity Error,Warning -ExcludeRule PSAvoidUsingWriteHost
           $issues | Format-Table -AutoSize
           if ($issues) { exit 1 }
 
