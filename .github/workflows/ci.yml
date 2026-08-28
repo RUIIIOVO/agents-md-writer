@@ -57,20 +57,25 @@ jobs:
           $issues | Format-Table -AutoSize
           if ($issues) { exit 1 }
 
+      # Note: with shell: pwsh, GitHub appends `exit $LASTEXITCODE`, so a step
+      # that intentionally runs a failing command must end with an explicit exit 0.
       - name: lint flags the bad example (expect exit 1)
         shell: pwsh
         run: |
           pwsh -File scripts/lint-agents-md.ps1 examples/before.md
           if ($LASTEXITCODE -ne 1) { throw "expected exit 1, got $LASTEXITCODE" }
+          exit 0
 
       - name: lint accepts the good example (expect exit 0)
         shell: pwsh
         run: |
           pwsh -File scripts/lint-agents-md.ps1 examples/after.md
           if ($LASTEXITCODE -ne 0) { throw "expected exit 0, got $LASTEXITCODE" }
+          exit 0
 
       - name: Windows PowerShell 5.1 compatibility
         shell: powershell
         run: |
           powershell -File scripts/lint-agents-md.ps1 examples/after.md
           if ($LASTEXITCODE -ne 0) { throw "expected exit 0, got $LASTEXITCODE" }
+          exit 0
