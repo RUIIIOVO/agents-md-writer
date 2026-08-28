@@ -1,0 +1,63 @@
+<!--
+How to use this template:
+1. Required sections — Repository layout / Environment & commands / Review checklist. Keep them.
+2. Every other section is optional. If it does not apply, DELETE THE WHOLE SECTION.
+   Do not leave placeholders. Do not pad to complete the set.
+3. Delete this comment block when you are done.
+-->
+
+# <project> — agent instructions
+
+<One line: what this project is, and the stack baseline.>
+<The single hardest constraint, if there is one.>
+
+## Repository layout
+
+```
+<dir>/           <one-line responsibility>
+<dir>/           <one-line responsibility>
+```
+
+## Environment & commands
+
+Prerequisites: <what must be installed first>
+
+- **<action>**: `<command>`
+- **<action>**: `<command>`
+
+<Hard negative constraint, e.g. "Never run X directly on the host.">
+
+## Testing
+
+- Tests live in: <path>
+- Run all: `<command>`
+- Run one: `<command>`
+
+## Code style
+
+- <naming convention>
+- <formatter / linter and its command>
+- <language version baseline>
+
+## Boundaries
+
+- <the line that must not be crossed>
+- <directories that are never hand-edited or committed>
+
+## Commits & PRs
+
+- Format: `<match the existing style in git log>`
+- One commit, one concern. Keep formatting changes separate from logic changes.
+- Never commit <artifact dir>, secrets, or local config.
+
+## Review checklist
+
+- [ ] `<executable verification command>` passes
+- [ ] <checkable condition>
+
+**A human verifies these. AI must not claim they are done**: <items needing eyes or real hardware>
+
+## References
+
+- <description>: `<path>`
+- <description, with trigger condition>: `<path>`

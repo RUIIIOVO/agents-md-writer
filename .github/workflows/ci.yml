@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  shell:
+    name: shell (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        if: runner.os == 'Linux'
+        run: shellcheck scripts/lint-agents-md.sh
+
+      - name: lint flags the bad example (expect exit 1)
+        run: |
+          set +e
+          NO_COLOR=1 bash scripts/lint-agents-md.sh examples/before.md
+          code=$?
+          set -e
+          test "$code" -eq 1 || { echo "expected exit 1, got $code"; exit 1; }
+
+      - name: lint accepts the good example (expect exit 0)
+        run: NO_COLOR=1 bash scripts/lint-agents-md.sh examples/after.md
+
+      - name: works under zsh
+        if: runner.os == 'macOS'
+        run: |
+          set +e
+          NO_COLOR=1 zsh scripts/lint-agents-md.sh examples/before.md
+          test $? -eq 1
+
+  powershell:
+    name: powershell (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
+          $issues = Invoke-ScriptAnalyzer -Path scripts/lint-agents-md.ps1 -Severity Error,Warning
+          $issues | Format-Table -AutoSize
+          if ($issues) { exit 1 }
+
+      - name: lint flags the bad example (expect exit 1)
+        shell: pwsh
+        run: |
+          pwsh -File scripts/lint-agents-md.ps1 examples/before.md
+          if ($LASTEXITCODE -ne 1) { throw "expected exit 1, got $LASTEXITCODE" }
+
+      - name: lint accepts the good example (expect exit 0)
+        shell: pwsh
+        run: |
+          pwsh -File scripts/lint-agents-md.ps1 examples/after.md
+          if ($LASTEXITCODE -ne 0) { throw "expected exit 0, got $LASTEXITCODE" }
+
+      - name: Windows PowerShell 5.1 compatibility
+        shell: powershell
+        run: |
+          powershell -File scripts/lint-agents-md.ps1 examples/after.md
+          if ($LASTEXITCODE -ne 0) { throw "expected exit 0, got $LASTEXITCODE" }
