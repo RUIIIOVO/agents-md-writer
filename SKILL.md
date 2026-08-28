@@ -7,8 +7,12 @@ compatibility: Lint scripts need bash 3.2+ or zsh (macOS, Linux), or PowerShell 
 
 # AGENTS.md Writer
 
-AGENTS.md is a project-level instruction file. pi, omp, Claude Code, Codex and others inject it
-**in full, at the start of every session**.
+**Reply in the user's language.** These instructions are in English for token efficiency; that does
+not dictate the conversation language. If the user writes in Chinese, answer in Chinese — including
+the review findings and the confirmation prompts.
+
+AGENTS.md is a project-level instruction file. Codex, pi, omp, Grok CLI, Kimi Code, OpenClaw,
+DeepSeek Harness and others inject it **in full, at the start of every session**.
 
 Two consequences drive everything below:
 
@@ -151,22 +155,17 @@ Ask whether the rule **still holds in a different repo**. Yes → global. No →
 
 ## Entry points
 
-Agents look for different filenames. Keep **one source of truth plus thin entry files** —
-never maintain parallel copies.
+Keep **one source of truth plus thin entry files** — never maintain parallel copies.
 
-| Agent | Reads | Action |
-|---|---|---|
-| pi, omp, Codex | `AGENTS.md` | The source file itself. Nothing else needed. |
-| Claude Code | `CLAUDE.md` | Create `CLAUDE.md` containing one line: `@AGENTS.md` (Anthropic import syntax) |
-| GitHub / Copilot skills | `.github/skills/` | Out of scope for AGENTS.md |
-| Gemini CLI | `GEMINI.md` | See below |
+| Situation | Action |
+|---|---|
+| Codex, pi, omp, OpenCode, Grok CLI, Kimi Code, OpenClaw, DeepSeek Harness, Copilot | Nothing to do. They read `AGENTS.md` directly. |
+| Claude Code | Create `CLAUDE.md` containing one line: `@AGENTS.md` |
+| Gemini CLI | Create `GEMINI.md` with prose pointing at `AGENTS.md` |
+| Cursor, Cline, Windsurf | **Different formats — do not symlink.** See the registry. |
 
-Gemini CLI support for the `@AGENTS.md` import syntax is **unverified**. Use plain prose, which
-depends on no syntax at all:
-
-```markdown
-Project conventions live in ./AGENTS.md. Read that file before starting work.
-```
+Per-agent paths, evidence levels, format caveats, and how to detect installed agents instead of
+hardcoding a list: [`references/agent-registry.md`](references/agent-registry.md).
 
 - **Do not use symlinks for project-level entry files.** Committed symlinks degrade into plain text
   files containing a path on Windows and some CI runners. Symlinks are fine for user-level config

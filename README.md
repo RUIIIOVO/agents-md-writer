@@ -6,8 +6,32 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-spec%20compliant-6f42c1)](https://agentskills.io/specification)
 
-Works with **Claude Code, Codex, pi, omp**, and anything else that loads
-[Agent Skills](https://agentskills.io/specification).
+Works with **Claude Code, Codex, pi, omp, Grok CLI, Kimi Code, OpenClaw, DeepSeek Harness** and
+anything else that loads [Agent Skills](https://agentskills.io/specification).
+
+[中文说明](README.zh-CN.md)
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/RUIIIOVO/agents-md-writer.git
+ln -s "$PWD/agents-md-writer" ~/.claude/skills/agents-md-writer   # or ~/.codex/skills, ~/.agents/skills
+```
+
+Then, in any repo:
+
+```
+you> write an AGENTS.md for this project
+```
+
+The agent probes the repo, writes only what it verified, and lints its own output. To check an
+existing file instead:
+
+```bash
+./scripts/lint-agents-md.sh AGENTS.md
+```
 
 ---
 
@@ -100,19 +124,13 @@ Three paths, picked automatically from what you ask for:
 
 ## Install
 
-Clone once, then point your agent at it:
-
-```bash
-git clone https://github.com/RUIIIOVO/agents-md-writer.git
-```
-
 | Agent | Install |
 |---|---|
 | **Claude Code** | `ln -s "$PWD/agents-md-writer" ~/.claude/skills/agents-md-writer` |
 | **Codex** | `ln -s "$PWD/agents-md-writer" ~/.codex/skills/agents-md-writer` |
 | **pi** | `ln -s "$PWD/agents-md-writer" ~/.agents/skills/agents-md-writer` |
 | **omp** | Same as pi — omp scans `.agents/`, `.claude/`, `.codex/` and `.github/skills/` |
-| **Any of the above, per-project** | `ln -s ../../agents-md-writer .claude/skills/agents-md-writer` (or `.agents/skills/`, `.codex/skills/`, `.github/skills/`) |
+| **Per-project** | `ln -s ../../agents-md-writer .claude/skills/agents-md-writer` (or `.agents/skills/`, `.codex/skills/`, `.github/skills/`) |
 
 Windows without symlink privileges: copy the directory instead of linking.
 
@@ -142,6 +160,7 @@ Or invoke it explicitly, if your agent supports it: `/skill:agents-md-writer`
 ```
 SKILL.md                          the skill itself — three paths, principles, 12-row checklist
 references/skeleton.md            section skeleton: required vs optional, layering, sources
+references/agent-registry.md      per-agent paths, format caveats, detection over hardcoding
 templates/AGENTS.md.template      blank template (English)
 templates/AGENTS.zh.md.template   blank template (Chinese)
 scripts/lint-agents-md.sh         mechanical checks — bash 3.2+ / zsh
@@ -200,6 +219,12 @@ Disagreement is welcome — open an issue.
 
 ## Compatibility
 
+`AGENTS.md` is now the de facto standard. OpenClaw (388k★) and DeepSeek Harness (201k★) both ship
+one; Grok CLI reads `~/.grok/AGENTS.md` and walks up from the working directory; Kimi Code carries a
+dedicated `agentsMdReminder` module. Writing a good one pays off across the whole fleet.
+
+**Where the skill installs:**
+
 | Agent | Skills | Reads from |
 |---|---|---|
 | Claude Code | ✅ | `~/.claude/skills/`, `.claude/skills/` |
@@ -208,6 +233,11 @@ Disagreement is welcome — open an issue.
 | omp | ✅ | all of the above, plus `.github/skills/` and Claude Code plugin caches |
 | GitHub Copilot | ✅ | `.github/skills/` |
 | Gemini CLI | ❌ | no skills mechanism — see [Install](#install) for the fallback |
+
+**Where the AGENTS.md it writes will be read:** Codex, pi, omp, OpenCode, Grok CLI, Kimi Code /
+Kimi CLI, OpenClaw, DeepSeek Harness and Copilot read `AGENTS.md` directly. Claude Code and Gemini
+CLI need a one-line entry file. Cursor, Cline and Windsurf use incompatible formats and must not be
+symlinked. Full matrix with evidence levels: [`references/agent-registry.md`](references/agent-registry.md).
 
 Lint scripts: bash 3.2+ (the macOS system bash), zsh, or PowerShell 5.1+. No external dependencies.
 Windows behaviour is verified in CI on `windows-latest` under both `pwsh` and Windows PowerShell 5.1.
