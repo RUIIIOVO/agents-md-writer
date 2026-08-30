@@ -20,7 +20,61 @@ jobs:
         if: runner.os == 'Linux'
         # severity=warning: SC2016 (info) fires on the backtick-matching regex,
         # where single quotes are exactly what we want.
-        run: shellcheck --severity=warning scripts/lint-agents-md.sh
+        run: shellcheck --severity=warning scripts/lint-agents-md.sh scripts/install.sh
+
+      - name: installer never guesses the caller
+        run: |
+          fake=$(mktemp -d)
+          set +e
+          env -u CLAUDECODE -u AI_AGENT -u PI_CODING_AGENT HOME=$fake \
+            bash scripts/install.sh > out.txt 2>&1
+          code=$?
+          set -e
+          test "$code" -eq 1
+          grep -q 'cannot identify the calling agent' out.txt
+
+      - name: installer detects Claude Code, is idempotent, and never nests
+        run: |
+          fake=$(mktemp -d)
+          mkdir -p "$fake/.claude"
+          CLAUDECODE=1 HOME=$fake bash scripts/install.sh
+          test -L "$fake/.claude/skills/agents-md-writer"
+          CLAUDECODE=1 HOME=$fake bash scripts/install.sh | grep -q 'already linked'
+          # a real directory in the way must block, never nest
+          rm -rf "$fake/.claude/skills/agents-md-writer"
+          mkdir -p "$fake/.claude/skills/agents-md-writer"
+          set +e; CLAUDECODE=1 HOME=$fake bash scripts/install.sh; code=$?; set -e
+          test "$code" -eq 1
+          test ! -e "$fake/.claude/skills/agents-md-writer/agents-md-writer"
+
+      - name: --where prints two parseable lines with no side effects
+        run: |
+          fake=$(mktemp -d)
+          out=$(CLAUDECODE=1 HOME=$fake bash scripts/install.sh --where)
+          echo "$out" | grep -q '^agent: claude$'
+          echo "$out" | grep -q '^path:  .*/.claude/skills/agents-md-writer$'
+          test ! -d "$fake/.claude"
+
+      - name: gemini reference block is idempotent and self-contained
+        run: |
+          fake=$(mktemp -d)
+          mkdir -p "$fake/.gemini"
+          printf 'my own notes\n' > "$fake/.gemini/GEMINI.md"
+          HOME=$fake bash scripts/install.sh --agent gemini
+          HOME=$fake bash scripts/install.sh --agent gemini | grep -q 'already referenced'
+          test "$(grep -c 'BEGIN agents-md-writer' "$fake/.gemini/GEMINI.md")" -eq 1
+          grep -q 'my own notes' "$fake/.gemini/GEMINI.md"
+
+      - name: never append through a symlinked GEMINI.md
+        run: |
+          fake=$(mktemp -d)
+          mkdir -p "$fake/.gemini"
+          printf 'shared config\n' > "$fake/real.md"
+          ln -s "$fake/real.md" "$fake/.gemini/GEMINI.md"
+          set +e; HOME=$fake bash scripts/install.sh --agent gemini > out.txt 2>&1; code=$?; set -e
+          test "$code" -eq 1
+          grep -q 'is a symlink' out.txt
+          test "$(cat "$fake/real.md")" = 'shared config'
 
       - name: lint flags the bad example (expect exit 1)
         run: |
@@ -52,7 +106,7 @@ jobs:
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
           # PSAvoidUsingWriteHost is excluded on purpose: this is a CLI reporter.
           # Write-Output would pollute the pipeline and lose the colour coding.
-          $issues = Invoke-ScriptAnalyzer -Path scripts/lint-agents-md.ps1 `
+          $issues = Invoke-ScriptAnalyzer -Path scripts/lint-agents-md.ps1,scripts/install.ps1 `
             -Severity Error,Warning -ExcludeRule PSAvoidUsingWriteHost
           $issues | Format-Table -AutoSize
           if ($issues) { exit 1 }
@@ -78,4 +132,30 @@ jobs:
         run: |
           powershell -File scripts/lint-agents-md.ps1 examples/after.md
           if ($LASTEXITCODE -ne 0) { throw "expected exit 0, got $LASTEXITCODE" }
+          exit 0
+
+      - name: installer junction install, idempotency and caller detection
+        shell: pwsh
+        run: |
+          $fake = Join-Path $env:RUNNER_TEMP 'fakehome'
+          New-Item -ItemType Directory -Force -Path "$fake\.claude" | Out-Null
+          $env:USERPROFILE = $fake
+          $env:CLAUDECODE = '1'
+          .\scripts\install.ps1
+          if (-not (Get-Item "$fake\.claude\skills\agents-md-writer").LinkType) { throw 'not a link' }
+          $out = .\scripts\install.ps1 | Out-String
+          if ($out -notmatch 'already linked') { throw "not idempotent: $out" }
+          $w = .\scripts\install.ps1 -Where | Out-String
+          if ($w -notmatch 'agent: claude') { throw "bad --where output: $w" }
+          exit 0
+
+      - name: installer refuses to guess the caller
+        shell: pwsh
+        run: |
+          $env:USERPROFILE = Join-Path $env:RUNNER_TEMP 'fakehome2'
+          Remove-Item Env:CLAUDECODE -ErrorAction SilentlyContinue
+          Remove-Item Env:AI_AGENT -ErrorAction SilentlyContinue
+          $out = .\scripts\install.ps1 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 1) { throw "expected exit 1, got $LASTEXITCODE" }
+          if ($out -notmatch 'cannot identify the calling agent') { throw $out }
           exit 0
