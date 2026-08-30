@@ -106,8 +106,10 @@ jobs:
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
           # PSAvoidUsingWriteHost is excluded on purpose: this is a CLI reporter.
           # Write-Output would pollute the pipeline and lose the colour coding.
-          $issues = Invoke-ScriptAnalyzer -Path scripts/lint-agents-md.ps1,scripts/install.ps1 `
-            -Severity Error,Warning -ExcludeRule PSAvoidUsingWriteHost
+          # -Path takes a single string, so analyse one script per call.
+          $issues = @('scripts/lint-agents-md.ps1', 'scripts/install.ps1') | ForEach-Object {
+            Invoke-ScriptAnalyzer -Path $_ -Severity Error,Warning -ExcludeRule PSAvoidUsingWriteHost
+          }
           $issues | Format-Table -AutoSize
           if ($issues) { exit 1 }
 
