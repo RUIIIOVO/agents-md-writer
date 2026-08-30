@@ -76,6 +76,13 @@ jobs:
           grep -q 'is a symlink' out.txt
           test "$(cat "$fake/real.md")" = 'shared config'
 
+      - name: --help prints the whole header, not a fixed line range
+        run: |
+          bash scripts/install.sh --help > help.txt
+          grep -q 'workbuddy' help.txt
+          grep -q 'gemini' help.txt
+          grep -q 'Exit: 0 ok' help.txt
+
       - name: lint flags the bad example (expect exit 1)
         run: |
           set +e
@@ -92,7 +99,16 @@ jobs:
         run: |
           set +e
           NO_COLOR=1 zsh scripts/lint-agents-md.sh examples/before.md
-          test $? -eq 1
+          test $? -eq 1 || exit 1
+          set -e
+          # zsh does not word-split unquoted parameters. Without SH_WORD_SPLIT
+          # the installer sees $ALL_AGENTS as one word, finds nothing, and --all
+          # quietly links no agent at all.
+          fake=$(mktemp -d)
+          mkdir -p "$fake/.claude" "$fake/.codex"
+          HOME=$fake zsh scripts/install.sh --all
+          test -L "$fake/.claude/skills/agents-md-writer"
+          test -L "$fake/.codex/skills/agents-md-writer"
 
   powershell:
     name: powershell (windows-latest)
