@@ -24,6 +24,11 @@
 
 set -eu
 
+# zsh does not word-split unquoted parameters, so `for a in $ALL_AGENTS` would
+# see one long string and find no agents at all. Only matters when the script is
+# invoked as `zsh install.sh`; the shebang path is unaffected.
+if [ -n "${ZSH_VERSION:-}" ]; then setopt SH_WORD_SPLIT; fi
+
 MODE=auto
 DRY=0
 WANT=
@@ -35,7 +40,9 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY=1 ;;
     --agent)   shift; [ $# -gt 0 ] || { echo "--agent needs a value" >&2; exit 2; }; MODE=explicit; WANT=$1 ;;
     --agent=*) MODE=explicit; WANT=${1#--agent=} ;;
-    -h|--help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    # Print the header block in full. A hardcoded line range silently truncates
+    # the agent list every time the comment grows.
+    -h|--help) awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
   shift
