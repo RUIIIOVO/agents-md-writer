@@ -11,7 +11,7 @@ compatibility: Lint scripts need bash 3.2+ or zsh (macOS, Linux), or PowerShell 
 not dictate the conversation language. If the user writes in Chinese, answer in Chinese — including
 the review findings and the confirmation prompts.
 
-AGENTS.md is a project-level instruction file. Codex, pi, omp, Grok CLI, Kimi Code, OpenClaw,
+AGENTS.md is a project-level instruction file. Codex, pi, omp, Hermes, Grok CLI, Kimi Code, OpenClaw,
 DeepSeek Harness and others inject it **in full, at the start of every session**.
 
 Two consequences drive everything below:
@@ -93,6 +93,22 @@ See [Entry points](#entry-points).
 
 Do not rewrite the file. The user asked for a diagnosis.
 
+### Reviewing many files at once
+
+When the user asks about the whole machine or a whole workspace, locate the files through the
+filesystem index. **Never run an unbounded recursive scan over `$HOME`.**
+
+```bash
+mdfind -0 -name 'AGENTS.md' | xargs -0 ./scripts/lint-agents-md.sh          # macOS, Spotlight index
+mdfind -0 -onlyin ~/work 'kMDItemFSName == "AGENTS.md"' | xargs -0 ...      # scoped
+plocate AGENTS.md                                                          # Linux, if indexed
+find <dir> -maxdepth 4 -name AGENTS.md                                     # fallback, always scoped
+```
+
+Report as a table — path, line count, error/warning counts — then ask which ones to fix.
+Fix them one at a time, and for each one list the **full path and the exact changes** before
+writing anything.
+
 ## Path C — Refactor
 
 1. `cp AGENTS.md AGENTS.md.bak` and tell the user where the backup is.
@@ -159,7 +175,7 @@ Keep **one source of truth plus thin entry files** — never maintain parallel c
 
 | Situation | Action |
 |---|---|
-| Codex, pi, omp, OpenCode, Grok CLI, Kimi Code, OpenClaw, DeepSeek Harness, Copilot | Nothing to do. They read `AGENTS.md` directly. |
+| Codex, pi, omp, OpenCode, Grok CLI, Kimi Code, OpenClaw, DeepSeek Harness, Hermes, Copilot | Nothing to do. They read `AGENTS.md` directly. |
 | Claude Code | Create `CLAUDE.md` containing one line: `@AGENTS.md` |
 | Gemini CLI | Create `GEMINI.md` with prose pointing at `AGENTS.md` |
 | Cursor, Cline, Windsurf | **Different formats — do not symlink.** See the registry. |

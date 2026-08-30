@@ -20,6 +20,7 @@ No entry file needed — `AGENTS.md` at the repo root is enough.
 | OpenClaw | — | `AGENTS.md` (also ships `CLAUDE.md`, `.claude/`, `.agents/`) | repo layout |
 | DeepSeek Harness | — | `AGENTS.md`, `.agents/notes/AGENTS.md` | repo layout |
 | GitHub Copilot | `~/.copilot/copilot-instructions.md` | `.github/copilot-instructions.md`, `AGENTS.md` | omp `discovery/github.ts` |
+| Hermes | `~/.hermes/config.yaml` | `AGENTS.md` | repo layout (NousResearch/hermes-agent) |
 
 ## Needs a thin entry file
 
@@ -45,13 +46,63 @@ These use a format that a plain `AGENTS.md` does not satisfy. Adapt the content,
 Gemini CLI loads context files but has no skills directory. To use a skill with it, paste the
 `SKILL.md` body into `GEMINI.md`, or reference the file by path in prose.
 
-## Unverified
+## Skills directories
 
-No authoritative source found for these. **Do not write paths for them.** Ask the user, or detect
-by scanning.
+Where a skill package is installed, as opposed to where the instruction file is read from.
 
-- WorkBuddy — only third-party skill collections found, no harness repository
-- "Hermes" coding agent — no authoritative repository; the name may refer to something else
+| Agent | Skills directory | Evidence |
+|---|---|---|
+| Claude Code | `~/.claude/skills/`, `.claude/skills/` | pi `docs/skills.md`, local install |
+| Codex | `~/.codex/skills/`, `.codex/skills/` | omp `discovery/codex.ts` |
+| pi, omp | `~/.agents/skills/`, `~/.pi/agent/skills/`, `.agents/skills/` | pi `docs/skills.md` |
+| GitHub Copilot | `.github/skills/` | omp `discovery/github.ts` |
+| Hermes | `~/.hermes/skills/`, `$HERMES_HOME/skills/` | source, see below |
+| ZCode | `~/.agents/skills/`, `~/.zcode/skills/`, `.agents/skills/`, `.zcode/skills/` | app source, see below |
+| WorkBuddy | `~/.workbuddy-ai/skills/` | app source, see below |
+
+**Hermes** (`hermes_cli`, `tools/skills_tool.py`):
+
+```python
+def get_hermes_home() -> Path:
+    val = (os.environ.get("HERMES_HOME") or "").strip()
+    return Path(val).resolve() if val else (Path.home() / ".hermes").resolve()
+
+SKILLS_DIR = HERMES_HOME / "skills"   # "All skills live in ~/.hermes/skills/"
+```
+
+**ZCode** resolves four roots, two of them shared with pi and omp:
+
+```js
+function f1(){ return yn(ly(), ".agents", "skills") }   // getUserAgentsSkillRoot
+function Tp(){ return yn(ly(), ".zcode", "skills") }    // getUserZcodeSkillRoot
+function $Ke(e){ return yn(e, ".agents", "skills") }    // getWorkspaceAgentsSkillRoot
+function d1(e){ return yn(e, ".zcode", "skills") }      // getWorkspaceZcodeSkillRoot
+// ly = resolveUserHomeDir = $HOME || $USERPROFILE
+```
+
+Since ZCode reads `~/.agents/skills/` natively, a skill already installed there needs no link.
+
+**WorkBuddy** (Tencent) resolves its skills directory in three steps:
+
+```js
+getDefaultConfigDirname() // product.json → dataFolderName: ".workbuddy-ai"
+getWorkbuddyConfigDir()   // $WORKBUDDY_CONFIG_DIR || path.join(homedir(), <above>)
+getWorkbuddySkillsDir()   // path.join(configDir, "skills")
+```
+
+So `~/.workbuddy-ai/skills/`, overridable with `WORKBUDDY_CONFIG_DIR`. Bundled skills under
+`WorkBuddy AI.app/.../builtin-plugins/*/skills/*/SKILL.md` use standard `name` + `description`
+frontmatter.
+
+Beware `~/.workbuddy` — it exists too, but only holds `binaries/` and `logs/`. A third-party
+registry lists it as the config directory; that is wrong for skills purposes.
+
+Hermes, ZCode and WorkBuddy are desktop applications rather than CLIs, so there is no environment
+variable to detect the caller from. Pass `--agent` explicitly.
+
+They also create their config directory only on **first launch**. Detecting an installed agent by
+config directory alone misses one that has been installed but never run, so check the application
+bundle too (`/Applications/ZCode.app`, `/Applications/WorkBuddy AI.app`, `/Applications/Hermes.app`).
 
 ## Detection instead of a hardcoded list
 
