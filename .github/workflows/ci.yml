@@ -148,7 +148,8 @@ jobs:
           $env:CLAUDECODE = '1'
           .\scripts\install.ps1
           if (-not (Get-Item "$fake\.claude\skills\agents-md-writer").LinkType) { throw 'not a link' }
-          $out = .\scripts\install.ps1 | Out-String
+          # Status rows go to the host, so capture stream 6 to read them back.
+          $out = .\scripts\install.ps1 6>&1 | Out-String
           if ($out -notmatch 'already linked') { throw "not idempotent: $out" }
           $w = .\scripts\install.ps1 -Where | Out-String
           if ($w -notmatch 'agent: claude') { throw "bad --where output: $w" }

@@ -243,13 +243,16 @@ function Select-AgentInteractively {
 # --- where -------------------------------------------------------------------
 if ($Where) {
     $caller = Get-Caller
+    # Write-Output, not Write-Host: these two lines are the machine-readable
+    # contract and must survive a pipe. The hint below is for humans only.
     if (-not $caller) {
-        Write-Host "agent: unknown`npath:  unknown"
+        Write-Output "agent: unknown"
+        Write-Output "path:  unknown"
         Write-Host "hint: pass -Agent with one of: $($allAgents -join ', ')" -ForegroundColor DarkGray
         exit 1
     }
-    Write-Host "agent: $caller"
-    Write-Host "path:  $(Join-Path (Get-SkillsDir $caller) $name)"
+    Write-Output "agent: $caller"
+    Write-Output "path:  $(Join-Path (Get-SkillsDir $caller) $name)"
     exit 0
 }
 
