@@ -121,7 +121,7 @@ function Test-AgentInstalled {
     return $false
 }
 
-function Get-InstalledAgents { $allAgents | Where-Object { Test-AgentInstalled $_ } }
+function Get-InstalledAgent { $allAgents | Where-Object { Test-AgentInstalled $_ } }
 
 function Write-Row {
     param([string]$Id, [string]$Status, [ConsoleColor]$Color, [string]$Detail)
@@ -203,7 +203,7 @@ function Install-GeminiReference {
 
 # Supported but absent from this machine. Listed so the menu is not mistaken
 # for the full set of agents this skill supports.
-function Get-UninstalledAgents {
+function Get-UninstalledAgent {
     $allAgents | Where-Object { -not (Test-AgentInstalled $_) }
 }
 
@@ -215,7 +215,7 @@ function Install-One {
 
 # A human at a terminal can be asked. Anything else (agent, pipe, CI) cannot.
 function Select-AgentInteractively {
-    $found = @(Get-InstalledAgents)
+    $found = @(Get-InstalledAgent)
     if ($found.Count -eq 0) { return $null }
     Write-Host 'Which agent? ' -NoNewline
     Write-Host '(you are in a terminal, so I can ask)' -ForegroundColor DarkGray
@@ -226,7 +226,7 @@ function Select-AgentInteractively {
     }
     Write-Host '  a' -NoNewline -ForegroundColor Cyan
     Write-Host ') all of them'
-    $missing = @(Get-UninstalledAgents)
+    $missing = @(Get-UninstalledAgent)
     if ($missing.Count -gt 0) {
         $names = ($missing | ForEach-Object { Get-Label $_ }) -join ', '
         Write-Host ''
@@ -262,7 +262,7 @@ $ok = $true
 if ($Agent) {
     $ok = Install-One $Agent
 } elseif ($All) {
-    $found = @(Get-InstalledAgents)
+    $found = @(Get-InstalledAgent)
     if ($found.Count -eq 0) {
         Write-Host 'no agents found under $HOME' -ForegroundColor Yellow
         exit 1
@@ -280,7 +280,7 @@ if ($Agent) {
         }
         Write-Host ''
         if ($picked -eq '--all') {
-            foreach ($a in Get-InstalledAgents) { if (-not (Install-One $a)) { $ok = $false } }
+            foreach ($a in Get-InstalledAgent) { if (-not (Install-One $a)) { $ok = $false } }
         } else {
             $ok = Install-One $picked
         }
@@ -289,8 +289,8 @@ if ($Agent) {
         Write-Host ''
         Write-Host "Re-run with -Agent NAME, where NAME is one of: $($allAgents -join ', ')"
         Write-Host 'Or use -All to link every agent found here:'
-        foreach ($a in Get-InstalledAgents) { Write-Host "  $(Get-Label $a)" -ForegroundColor DarkGray }
-        $missing = @(Get-UninstalledAgents)
+        foreach ($a in Get-InstalledAgent) { Write-Host "  $(Get-Label $a)" -ForegroundColor DarkGray }
+        $missing = @(Get-UninstalledAgent)
         if ($missing.Count -gt 0) {
             $names = ($missing | ForEach-Object { Get-Label $_ }) -join ', '
             Write-Host "Also supported, not installed here: $names" -ForegroundColor DarkGray
