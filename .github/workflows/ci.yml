@@ -161,7 +161,9 @@ jobs:
           $env:USERPROFILE = Join-Path $env:RUNNER_TEMP 'fakehome2'
           Remove-Item Env:CLAUDECODE -ErrorAction SilentlyContinue
           Remove-Item Env:AI_AGENT -ErrorAction SilentlyContinue
-          $out = .\scripts\install.ps1 2>&1 | Out-String
+          # The refusal is host output on Windows and stderr in the shell script,
+          # so merge every stream before matching.
+          $out = .\scripts\install.ps1 *>&1 | Out-String
           if ($LASTEXITCODE -ne 1) { throw "expected exit 1, got $LASTEXITCODE" }
-          if ($out -notmatch 'cannot identify the calling agent') { throw $out }
+          if ($out -notmatch 'cannot identify the calling agent') { throw "unexpected output: $out" }
           exit 0
