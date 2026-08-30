@@ -1,1 +1,17 @@
+# macOS
 .DS_Store
+._*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Local backups and merge leftovers
+*.bak
+*.orig
+*.rej
